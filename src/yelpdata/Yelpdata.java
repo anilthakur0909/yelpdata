@@ -190,7 +190,7 @@ public class Yelpdata {
             while ((line = reader.readLine()) != null) {
                 String[] csv_data = line.split(splitBy);
                 url = csv_data[1];
-                
+                fetchyelpdata(url);
                 System.out.println("row inserted successfully.......");
             }
 
@@ -269,8 +269,8 @@ public class Yelpdata {
 
     public static void main(String[] args) throws IOException, FileNotFoundException, InterruptedException {
         FetchYelpData fetchdata = new FetchYelpData();
-        //fetchdata.csvtojava();
-        fetchdata.fetchyelpdata("http://www.yelp.com/biz/mikado-bistro-brentwood");
+        fetchdata.csvtojava();
+        //fetchdata.fetchyelpdata("http://www.yelp.com/biz/mikado-bistro-brentwood");
 
     }
 }
