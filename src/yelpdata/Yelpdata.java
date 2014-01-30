@@ -7,124 +7,205 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.joda.time.DateTime;
+import org.joda.time.Days;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
 public class Yelpdata {
 
     public static class FetchYelpData {
 
         public ArrayList<String> fetchyelpdata(String url) throws IOException {
-            Document doc;
+            Document document = null;
             Element element = null;
             int test = 1;
             while (element == null) {
-                doc = Jsoup.connect(url).timeout(0).get();
-                element = doc.getElementById("bizBox");
+                document = Jsoup.connect(url).timeout(0).get();
+                element = document.getElementById("bizBox");
                 if (test == 5) {
                     break;
                 }
                 test++;
             }
-            ArrayList<String> data=new ArrayList();        
-           // String merchantName = 
+            ArrayList<String> data = new ArrayList();
             data.add(element.select("#bizInfoHeader>h1[itemprop=name]").text());
-            //String address = 
             data.add(element.select("#bizInfoContent>address>span[itemprop=streetAddress]").text());
-            //String city=
             data.add(element.select("#bizInfoContent>address>span[itemprop=addressLocality]").text());
-            //String state=
             data.add(element.select("#bizInfoContent>address>span[itemprop=addressRegion]").text());
-            //String zipcode=
             data.add(element.select("#bizInfoContent>address>span[itemprop=postalCode]").text());
-            //String phone=
             data.add(element.select("#bizInfoContent>span[itemprop=telephone]").text());
-            //String websiteaddress=
             data.add(element.select("#bizUrl").text());
-            
-            //String average_rating = 
             data.add(element.select("#bizRating .rating>meta").attr("content"));
-            //String reviews = 
             data.add(element.select("#bizRating .review-count>span").text());
 
-            //for col-0
-            //String hours = 
+
             data.add(element.select("#bizAdditionalInfo>.col-0>dl>dd.attr-BusinessHours").text());
-            //String good_for_groups = 
             data.add(element.select("#bizAdditionalInfo>.col-0>dl>dd.attr-RestaurantsGoodForGroups").text());
-            //String accepts_credit_cards = 
             data.add(element.select("#bizAdditionalInfo>.col-0>dl>dd.attr-BusinessAcceptsCreditCards").text());
-            //String parking = 
             data.add(element.select("#bizAdditionalInfo>.col-0>dl>dd.attr-BusinessParking").text());
-            //String attire = 
             data.add(element.select("#bizAdditionalInfo>.col-0>dl>dd.attr-RestaurantsAttire").text());
-            //for col-2
-            //String price_range = 
+
             data.add(element.select("#bizAdditionalInfo>.col-1>dl>dd.aattr-RestaurantsPriceRange2").text());
-            //String good_for_kids = 
             data.add(element.select("#bizAdditionalInfo>.col-1>dl>dd.attr-GoodForKids").text());
-            //String takes_reservations = 
             data.add(element.select("#bizAdditionalInfo>.col-1>dl>dd.attr-RestaurantsReservations").text());
-            //String delivery = 
             data.add(element.select("#bizAdditionalInfo>.col-1>dl>dd.attr-RestaurantsDelivery").text());
-            //String take_out = 
             data.add(element.select("#bizAdditionalInfo>.col-1>dl>dd.attr-RestaurantsTakeOut").text());
-            //String waiter_service = 
             data.add(element.select("#bizAdditionalInfo>.col-1>dl>dd.attr-RestaurantsTableService").text());
-            //String outdoor_seating = 
             data.add(element.select("#bizAdditionalInfo>.col-1>dl>dd.attr-OutdoorSeating").text());
-            //String wi_fi = 
             data.add(element.select("#bizAdditionalInfo>.col-1>dl>dd.attr-WiFi").text());
-            //for col-3 
-            //String good_for =
             data.add(element.select("#bizAdditionalInfo>.col-2>dl>dd.attr-GoodForMeal").text());
-            //String alcohol = 
             data.add(element.select("#bizAdditionalInfo>.col-2>dl>dd.attr-Alcohol").text());
-            //String noise_level = 
             data.add(element.select("#bizAdditionalInfo>.col-2>dl>dd.attr-NoiseLevel").text());
-            //String ambience = 
             data.add(element.select("#bizAdditionalInfo>.col-2>dl>dd.attr-Ambience").text());
-            //String has_tv = 
             data.add(element.select("#bizAdditionalInfo>.col-2>dl>dd.attr-HasTV").text());
-            //String caters = 
             data.add(element.select("#bizAdditionalInfo>.col-2>dl>dd.attr-Caters").text());
-            //String wheelchair_accessible = 
             data.add(element.select("#bizAdditionalInfo>.col-2>dl>dd.attr-WheelchairAccessible").text());
 
-            System.out.println("data="+data);
-            
-            return data;
+           // System.out.println("data=" + data);
 
+
+
+            Element ele = null;
+
+            String element_text;
+            ele = document.getElementById("rpp-count");
+
+            element_text = ele.text();
+            Pattern pattern = Pattern.compile("\\d+");
+            Matcher matcher = pattern.matcher(element_text);
+
+            for (int i = 0; i < 3; i++) {
+                matcher.find();
+            }
+            int reviews_count = Integer.parseInt(matcher.group());
+            System.out.println(reviews_count);
+            int page_count;
+            if (reviews_count % 40 == 0) {
+                page_count = reviews_count / 40;
+            } else {
+                page_count = reviews_count / 40 + 1;
+            }
+            System.out.println(page_count);
+
+            int temp = 0;
+       
+            ArrayList<Double> rating = new ArrayList();
+            ArrayList<String[]> reviewer_details = new ArrayList();
+
+            for (int count = 0; count < page_count; count++) {
+                String url1 = url + "?start=" + temp;
+                System.out.println("new url" + url1);
+                Elements reviews;
+                Document doc1 = Jsoup.connect(url1).timeout(0).get();
+                reviews = doc1.select("#reviews-other>ul>li");
+                temp +=40;
+                while (reviews == null || reviews.size() == 0) {
+                    doc1 = Jsoup.connect(url1).timeout(0).get();
+                    reviews = doc1.select("#reviews-other>ul>li");
+                }
+                //System.out.println("reviews" + reviews.size());
+                for (Element review : reviews) {
+
+                    Elements rating_element = review.select(".rating>meta");
+
+                    //System.out.println(rating_element.get(0).attr("content"));
+                    Double rating_star = Double.parseDouble(rating_element.get(0).attr("content").trim());
+
+                    rating.add(rating_star);
+                   // System.out.println("rating_star=" + rating_star);
+                    //String reviewer_name = 
+                    reviewer_details.add(new String[] {review.select("meta[itemprop=datePublished]").attr("content").trim(),review.select(".user-name>a").text(),review.select("p.reviewer_info").text(),review.select("p.review_comment[itemprop=description]").text(),rating_star.toString()});
+                }
+
+
+            }
             
+            double rating_total = 0.0;
+            for (int i = 0; i < rating.size(); i++) {
+                rating_total += (double)rating.get(i);
+            }
+            double mean = (rating_total / rating.size());
+  
+            
+            
+            double deviation_total = 0.0;
+            for (int i = 0; i < rating.size(); i++) { 
+                    
+                    double deviation=mean - rating.get(i);
+                    deviation_total+=Math.pow(deviation,2);
+                    
+            }
+            double variance = Math.sqrt(deviation_total / rating.size());
+           
+            Collections.sort(rating);
+            double median =  0.0;
+            if ((rating.size() % 2) == 0) {
+                int middle = rating.size() / 2;
+                median = (rating.get(middle) + rating.get(middle - 1)) / 2;
+            } else {
+                int middle = rating.size() / 2;
+                median = rating.get(middle - 1);
+            }
+            System.out.println("mean=" + mean);
+            System.out.println("variance=" + variance);
+            System.out.println("The median is= " + median);
+            data.add(Double.toString(mean));
+            data.add(Double.toString(median));
+            data.add(Double.toString(variance));
+            Date date =null;
+            try {
+                date = new SimpleDateFormat("YYYY-MM-dd").parse(reviewer_details.get(0)[0]);
+            } catch (ParseException ex) {
+                Logger.getLogger(Yelpdata.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            int days_between = Days.daysBetween(new DateTime(date), new DateTime(new Date())).getDays();
+            data.add(Integer.toString(days_between));
+            //System.out.println("review count is= "+reviews_count+" rating count is "+rating.size());
+            javatocsv(data,reviewer_details);
+            return data;
         }
+
         public void csvtojava() throws FileNotFoundException, IOException, InterruptedException {
-            String filename = "/home/trantor/Desktop/CAN-Hadoop/yelp_analysis.csv";
+            String filename = "/home/trantor/Documents/yelpdata/input/yelp_analysis.csv";
             String line = "";
             String url = "";
             String splitBy = ",";
-            
-            FileReader file=new FileReader(filename);
+
+            FileReader file = new FileReader(filename);
             BufferedReader reader = new BufferedReader(file);
             reader.readLine();
-            
+
             while ((line = reader.readLine()) != null) {
                 String[] csv_data = line.split(splitBy);
                 url = csv_data[1];
-                javatocsv(fetchyelpdata(url));
+                
                 System.out.println("row inserted successfully.......");
             }
-            
-            
-            
+
+
+
         }
-            public void javatocsv(ArrayList<String> result) throws IOException {
-            String filename = "/home/trantor/Desktop/Yelp_result.csv";
+
+        public void javatocsv(ArrayList<String> result,ArrayList<String[]> reviewer_details) throws IOException {
+            String filename = "/home/trantor/Documents/yelpdata/output/Yelp_result.csv";
             boolean alreadyExists = new File(filename).exists();
-            try{
-            CsvWriter writer=new CsvWriter(new FileWriter(filename, true), ',');
-    
-                if (!alreadyExists){
+            
+            try {
+                CsvWriter writer = new CsvWriter(new FileWriter(filename, true), ',');
+
+                if (!alreadyExists) {
                     writer.write("marchant name");
                     writer.write("Address");
                     writer.write("City");
@@ -153,27 +234,43 @@ public class Yelpdata {
                     writer.write("ambience ");
                     writer.write("hasTV");
                     writer.write("caters");
-                    writer.write("wheelchair accessible ");  
-                }  
-                writer.endRecord();
-                for(String rs :result){
-                    writer.write(rs.toString());
+                    writer.write("wheelchair accessible ");
+                    
+                    writer.write("mean");
+                    writer.write("median");
+                    writer.write("variance");
+                    writer.write("days between");
+                    writer.write("review date");
+                    writer.write("reviewer name");
+                    writer.write("reviewer city");
+                    writer.write("review");
+                    writer.write("rating");
+                    
                 }
-               
+                writer.endRecord();
+                for(String[] details: reviewer_details){
+                    for (String rs : result) {
+                        writer.write(rs);
+                    }
+                    for(String detail: details){
+                        writer.write(detail);
+                    }
+                    writer.endRecord();
+                }
+
                 writer.close();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
-		}
- 
-        
-        } 
+            }
+
+
+        }
     }
 
     public static void main(String[] args) throws IOException, FileNotFoundException, InterruptedException {
         FetchYelpData fetchdata = new FetchYelpData();
-        fetchdata.csvtojava();
-        //fetchdata.fetchyelpdata("http://www.yelp.com/biz/mikado-bistro-brentwood");
+        //fetchdata.csvtojava();
+        fetchdata.fetchyelpdata("http://www.yelp.com/biz/mikado-bistro-brentwood");
 
     }
 }
